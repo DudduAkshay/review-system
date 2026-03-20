@@ -31,10 +31,15 @@ class DocumentController {
       let { title, reviewerIds } = req.body;
       const file = req.file ? req.file.filename : null;
 
+      console.log('\n=== DOCUMENT CREATION REQUEST ===');
+      console.log('Raw reviewerIds from request:', reviewerIds);
+      console.log('Type of reviewerIds:', typeof reviewerIds);
+
       // Parse reviewerIds if it's a JSON string (from FormData)
       if (typeof reviewerIds === 'string') {
         try {
           reviewerIds = JSON.parse(reviewerIds);
+          console.log('Parsed reviewerIds:', reviewerIds);
         } catch (e) {
           console.error('Failed to parse reviewerIds:', e);
           return res.status(400).json({ error: 'Invalid reviewerIds format' });
@@ -55,6 +60,9 @@ class DocumentController {
       const validReviewerIds = reviewerIds.filter(id => id && String(id).trim().length > 0);
       const uniqueReviewerIds = [...new Set(validReviewerIds)];
 
+      console.log('Valid reviewerIds after filtering:', validReviewerIds);
+      console.log('Unique reviewerIds:', uniqueReviewerIds);
+
       // Validation: Reject if no reviewers provided
       if (uniqueReviewerIds.length === 0) {
         return res.status(400).json({ error: 'At least one reviewer is required' });
@@ -68,16 +76,21 @@ class DocumentController {
       let reviewers = [];
       if (uniqueReviewerIds.length > 0) {
         reviewers = await Reviewer.find({ _id: { $in: uniqueReviewerIds } });
+        console.log('Found reviewers in database:', reviewers.map(r => ({ id: r._id, name: r.name })));
+            
         if (reviewers.length !== uniqueReviewerIds.length) {
+          const foundIds = reviewers.map(r => r._id.toString());
+          const missingIds = uniqueReviewerIds.filter(id => !foundIds.includes(id));
+          console.error('Missing reviewer IDs:', missingIds);
           return res.status(400).json({ error: 'One or more reviewer IDs do not exist' });
         }
       }
-
-      // FIRST: Create document and save it
+      
+      // FIRST: Create document with DRAFT status initially
       const document = await Document.create({
         title: title.trim(),
         file,
-        status: uniqueReviewerIds.length > 0 ? 'IN_REVIEW' : 'DRAFT',
+        status: 'DRAFT', // Always start as DRAFT
       });
 
       console.log('Created document:', document._id, document.title);
@@ -90,11 +103,14 @@ class DocumentController {
           status: 'PENDING',
         }));
 
-        console.log('Creating reviews (bulk):', reviews);
+        console.log('Creating reviews for document:', document._id);
+        console.log('Selected reviewer IDs:', uniqueReviewerIds);
+        console.log('Reviews to create:', JSON.stringify(reviews, null, 2));
         try {
           // Use ordered:false to continue on duplicates and surface other errors
           await Review.insertMany(reviews, { ordered: false });
-          console.log('Reviews created successfully (bulk)');
+          console.log('✅ Reviews created successfully:', reviews.length, 'reviews for', uniqueReviewerIds.length, 'reviewers');
+          console.log('Review IDs created:', reviews.map(r => r.reviewer));
         } catch (err) {
           console.error('Review.insertMany error:', err.message || err);
           // If duplicate key errors occur, try creating individually and ignore duplicates
@@ -120,6 +136,12 @@ class DocumentController {
         status: document.status,
         createdAt: document.createdAt,
       });
+      
+      console.log('✅ DOCUMENT CREATION COMPLETED');
+      console.log('Document ID:', document._id);
+      console.log('Document Title:', document.title);
+      console.log('Assigned Reviewers:', uniqueReviewerIds.length);
+      console.log('===============================\n');
     } catch (error) {
       console.error('Document creation error:', error);
       res.status(500).json({ error: error.message });

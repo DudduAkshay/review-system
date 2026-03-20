@@ -22,17 +22,20 @@ class DashboardController {
       
       // Get UNIQUE pending reviewers (avoid duplicates)
       const pendingReviews = await Review.find({ status: 'PENDING' }).populate('reviewer');
-      const uniquePendingReviewers = new Map();
-      const pendingReviewers = [];
+      const uniquePendingReviewerIds = new Set();
+      const listOfPendingReviewers = [];
       
       pendingReviews.forEach(review => {
-        if (review.reviewer && !uniquePendingReviewers.has(review.reviewer._id.toString())) {
-          uniquePendingReviewers.set(review.reviewer._id.toString(), true);
-          pendingReviewers.push(review.reviewer);
+        if (review.reviewer && review.reviewer._id) {
+          const reviewerId = review.reviewer._id.toString();
+          if (!uniquePendingReviewerIds.has(reviewerId)) {
+            uniquePendingReviewerIds.add(reviewerId);
+            listOfPendingReviewers.push(review.reviewer.name);
+          }
         }
       });
       
-      const numberOfPendingReviewers = pendingReviewers.length;
+      const numberOfPendingReviewers = listOfPendingReviewers.length;
 
       res.json({
         totalDocuments,
@@ -40,7 +43,8 @@ class DashboardController {
         documents,
         totalReviewers,
         numberOfPendingReviewers,
-        pendingReviewers,
+        listOfPendingReviewers, // Return array of names
+        pendingReviewers: pendingReviews, // Also return full reviewer objects for debugging
       });
     } catch (error) {
       res.status(500).json({ error: error.message });

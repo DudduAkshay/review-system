@@ -18,11 +18,13 @@ const ReviewPage = () => {
     setLoading(true);
     axios.get(`${API_BASE}/api/documents/${id}`)
       .then(response => {
+        console.log('Fetched document data:', response.data);
+        console.log('Reviews in document:', response.data.reviews);
         setData(response.data);
         setLoading(false);
       })
       .catch(error => {
-        console.error(error);
+        console.error('Error fetching document:', error);
         setError('Failed to load document');
         setLoading(false);
       });
@@ -30,7 +32,10 @@ const ReviewPage = () => {
 
   const fetchReviewers = useCallback(() => {
     axios.get(`${API_BASE}/api/reviewers`)
-      .then(response => setReviewers(response.data))
+      .then(response => {
+        console.log('Fetched reviewers:', response.data);
+        setReviewers(response.data);
+      })
       .catch(error => console.error('Failed to load reviewers:', error));
   }, []);
 
@@ -72,6 +77,9 @@ const ReviewPage = () => {
         fetchData();
         setShowConfirm(false);
         setError('');
+        
+        // Trigger dashboard refresh
+        window.dispatchEvent(new CustomEvent('dashboard-refresh'));
       })
       .catch(error => {
         const errorMsg = error.response?.data?.error || error.message || 'Failed to update review';
@@ -87,7 +95,8 @@ const ReviewPage = () => {
   const total = data.reviews.length;
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-pink-50 to-red-100">
+      <div className="relative max-w-4xl mx-auto">
       <Link to="/" className="inline-flex items-center mb-6 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors">
         ← Back to Dashboard
       </Link>
@@ -97,7 +106,11 @@ const ReviewPage = () => {
         <h2 className="text-xl font-semibold text-gray-800 mb-4">👤 Select Reviewer</h2>
         <select
           value={selectedReviewerId}
-          onChange={(e) => setSelectedReviewerId(e.target.value)}
+          onChange={(e) => {
+            const selectedId = e.target.value;
+            console.log('Reviewer selector changed to:', selectedId);
+            setSelectedReviewerId(selectedId);
+          }}
           className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
           <option value="">-- Select a reviewer --</option>
@@ -149,23 +162,37 @@ const ReviewPage = () => {
       <div className="bg-white p-8 rounded-xl shadow-lg">
         <h2 className="text-2xl font-semibold text-gray-800 mb-6">👥 Reviewers</h2>
         <div className="space-y-4">
-          {data.reviews.map(review => (
-            <div key={review._id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div className="flex items-center">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-medium mr-4">
-                  {review.reviewer.name.charAt(0).toUpperCase()}
+          {data.reviews && data.reviews.length > 0 ? (
+            data.reviews.map(review => {
+              // Safety check for null reviewer
+              if (!review || !review.reviewer) {
+                return null;
+              }
+              
+              return (
+                <div key={review._id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center">
+                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-medium mr-4">
+                      {review.reviewer.name.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="font-medium text-gray-800">{review.reviewer.name}</span>
+                  </div>
+                  <span className={`px-4 py-2 rounded-full text-sm font-semibold ${
+                    review.status === 'PENDING' ? 'bg-gray-100 text-gray-800' :
+                    review.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
+                    'bg-red-100 text-red-800'
+                  }`}>
+                    {review.status}
+                  </span>
                 </div>
-                <span className="font-medium text-gray-800">{review.reviewer.name}</span>
-              </div>
-              <span className={`px-4 py-2 rounded-full text-sm font-semibold ${
-                review.status === 'PENDING' ? 'bg-gray-100 text-gray-800' :
-                review.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
-                'bg-red-100 text-red-800'
-              }`}>
-                {review.status}
-              </span>
+              );
+            })
+          ) : (
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+              <p className="text-yellow-800 font-semibold">⚠️ No reviewers assigned</p>
+              <p className="text-sm text-yellow-700 mt-1">This document has not been assigned to any reviewers yet.</p>
             </div>
-          ))}
+          )}
         </div>
         {selectedReviewerId && myReview && myReview.status === 'PENDING' && (
           <div className="mt-8 pt-6 border-t border-gray-200">
@@ -248,6 +275,7 @@ const ReviewPage = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

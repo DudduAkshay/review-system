@@ -14,6 +14,18 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchData();
+    
+    // Listen for dashboard refresh events from other components
+    const handleRefresh = () => {
+      console.log('Dashboard refresh triggered');
+      fetchData();
+    };
+    
+    window.addEventListener('dashboard-refresh', handleRefresh);
+    
+    return () => {
+      window.removeEventListener('dashboard-refresh', handleRefresh);
+    };
   }, []);
 
   const fetchData = () => {
@@ -80,11 +92,22 @@ const Dashboard = () => {
   };
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-800 mb-2">📊 Dashboard</h1>
-        <p className="text-gray-600">Manage and track your document reviews</p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <div className="relative">
+        {/* Enhanced Header - Light UI */}
+        <div className="mb-10">
+          <div className="bg-white/60 backdrop-blur-md rounded-3xl p-8 shadow-xl border border-white/30">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 mb-3">📊 Dashboard</h1>
+                <p className="text-gray-600 text-lg font-medium">Manage and track your document reviews with ease</p>
+              </div>
+              <div className="hidden md:block">
+                <div className="text-8xl opacity-20 transform rotate-12">📄</div>
+              </div>
+            </div>
+          </div>
+        </div>
 
       {deleteSuccess && (
         <div className="mb-8 p-6 bg-green-50 border-l-4 border-green-500 rounded-lg shadow-lg animate-slide-in">
@@ -97,78 +120,146 @@ const Dashboard = () => {
           </div>
         </div>
       )}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 rounded-xl shadow-lg">
+
+      {/* Enhanced Status Cards - Light UI */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        {/* Total Documents Card */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-white/30 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold opacity-90">Total Documents</h2>
-              <p className="text-3xl font-bold">{data.totalDocuments}</p>
+              <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Documents</h2>
+              <p className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mt-2">{data.totalDocuments}</p>
             </div>
-            <div className="text-4xl opacity-75">📄</div>
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-2xl flex items-center justify-center text-3xl shadow-lg transform rotate-3">📄</div>
           </div>
         </div>
-        {data.statusCounts.map(count => (
-          <div key={count._id} className={`p-6 rounded-xl shadow-lg text-white ${
-            count._id === 'DRAFT' ? 'bg-gradient-to-r from-gray-500 to-gray-600' :
-            count._id === 'IN_REVIEW' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' :
-            count._id === 'APPROVED' ? 'bg-gradient-to-r from-green-500 to-green-600' :
-            'bg-gradient-to-r from-red-500 to-red-600'
-          }`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-semibold opacity-90">{count._id}</h2>
-                <p className="text-3xl font-bold">{count.count}</p>
-              </div>
-              <div className="text-4xl opacity-75">
-                {count._id === 'DRAFT' ? '📝' : count._id === 'IN_REVIEW' ? '⏳' : count._id === 'APPROVED' ? '✅' : '❌'}
+
+        {data.statusCounts && data.statusCounts.length > 0 ? (
+          data.statusCounts.map(count => (
+            <div key={count._id} className={`bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-white/30 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 ${
+              count._id === 'DRAFT' ? 'border-l-4 border-gray-500' :
+              count._id === 'IN_REVIEW' ? 'border-l-4 border-yellow-500' :
+              count._id === 'APPROVED' ? 'border-l-4 border-green-500' :
+              'border-l-4 border-red-500'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">{count._id.replace('_', ' ')}</h2>
+                  <p className={`text-4xl font-bold mt-2 ${
+                    count._id === 'DRAFT' ? 'text-gray-600' :
+                    count._id === 'IN_REVIEW' ? 'text-yellow-600' :
+                    count._id === 'APPROVED' ? 'text-green-600' :
+                    'text-red-600'
+                  }`}>{count.count}</p>
+                </div>
+                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-lg transform -rotate-3 ${
+                  count._id === 'DRAFT' ? 'bg-gradient-to-br from-gray-400 to-gray-500 text-white' :
+                  count._id === 'IN_REVIEW' ? 'bg-gradient-to-br from-yellow-400 to-yellow-500 text-white' :
+                  count._id === 'APPROVED' ? 'bg-gradient-to-br from-green-400 to-green-500 text-white' :
+                  'bg-gradient-to-br from-red-400 to-red-500 text-white'
+                }`}>
+                  {count._id === 'DRAFT' ? '📝' : count._id === 'IN_REVIEW' ? '⏳' : count._id === 'APPROVED' ? '✅' : '❌'}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Pending Reviewers Section */}
-      <div className="bg-white p-6 rounded-xl shadow-lg mb-8">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">⏳ Pending Reviewers ({data.numberOfPendingReviewers})</h2>
-        {data.pendingReviewers && data.pendingReviewers.length === 0 ? (
-          <p className="text-gray-600">No pending reviewers</p>
+          ))
         ) : (
-          <ul className="space-y-2">
-            {data.pendingReviewers.map(reviewer => (
-              <li key={reviewer._id} className="flex items-center p-3 bg-gray-50 rounded-lg">
-                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium mr-3">
-                  {reviewer.name.charAt(0).toUpperCase()}
+          // Show all statuses with 0 if no data
+          <>            
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-xl border-l-4 border-gray-500 border border-white/30">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">DRAFT</h2>
+                  <p className="text-4xl font-bold text-gray-600 mt-2">0</p>
                 </div>
-                <span className="text-gray-800 font-medium">{reviewer.name}</span>
-              </li>
-            ))}
-          </ul>
+                <div className="w-16 h-16 bg-gradient-to-br from-gray-400 to-gray-500 rounded-2xl flex items-center justify-center text-3xl shadow-lg transform -rotate-3">📝</div>
+              </div>
+            </div>
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-xl border-l-4 border-yellow-500 border border-white/30">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">IN REVIEW</h2>
+                  <p className="text-4xl font-bold text-yellow-600 mt-2">0</p>
+                </div>
+                <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-2xl flex items-center justify-center text-3xl shadow-lg transform -rotate-3">⏳</div>
+              </div>
+            </div>
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-xl border-l-4 border-green-500 border border-white/30">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">APPROVED</h2>
+                  <p className="text-4xl font-bold text-green-600 mt-2">0</p>
+                </div>
+                <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-green-500 rounded-2xl flex items-center justify-center text-3xl shadow-lg transform -rotate-3">✅</div>
+              </div>
+            </div>
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-xl border-l-4 border-red-500 border border-white/30">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">REJECTED</h2>
+                  <p className="text-4xl font-bold text-red-600 mt-2">0</p>
+                </div>
+                <div className="w-16 h-16 bg-gradient-to-br from-red-400 to-red-500 rounded-2xl flex items-center justify-center text-3xl shadow-lg transform -rotate-3">❌</div>
+              </div>
+            </div>
+          </>
         )}
       </div>
 
-      <div className="mb-6 flex flex-col sm:flex-row gap-4">
-        <input 
-          type="text" 
-          placeholder="🔍 Search by title..." 
-          value={search} 
-          onChange={e => setSearch(e.target.value)}
-          className="border border-gray-300 p-3 rounded-lg flex-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        />
-        <select 
-          value={filter} 
-          onChange={e => setFilter(e.target.value)}
-          className="border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        >
-          <option value="">All Status</option>
-          <option value="DRAFT">Draft</option>
-          <option value="IN_REVIEW">In Review</option>
-          <option value="APPROVED">Approved</option>
-          <option value="REJECTED">Rejected</option>
-        </select>
+      {/* Pending Reviewers Section - Safety Check */}
+      {data.numberOfPendingReviewers !== undefined && data.numberOfPendingReviewers > 0 && (
+        <div className="bg-white p-6 rounded-xl shadow-lg mb-8">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">⏳ Pending Reviewers ({data.numberOfPendingReviewers})</h2>
+          {data.listOfPendingReviewers && data.listOfPendingReviewers.length > 0 ? (
+            <ul className="space-y-2">
+              {data.listOfPendingReviewers.map((name, index) => (
+                <li key={index} className="flex items-center p-3 bg-gray-50 rounded-lg">
+                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium mr-3">
+                    {name && name.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-gray-800 font-medium">{name}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-gray-600">No pending reviewers</p>
+          )}
+        </div>
+      )}
+
+      {/* Enhanced Search & Filter - Light UI */}
+      <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/30 mb-6">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <input 
+            type="text" 
+            placeholder="🔍 Search documents by title..." 
+            value={search} 
+            onChange={e => setSearch(e.target.value)}
+            className="flex-1 border-2 border-gray-200 p-4 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white/80 transition-all"
+          />
+          <select 
+            value={filter} 
+            onChange={e => setFilter(e.target.value)}
+            className="border-2 border-gray-200 p-4 px-6 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white/80 transition-all font-medium"
+          >
+            <option value="">All Status</option>
+            <option value="DRAFT">📝 Draft</option>
+            <option value="IN_REVIEW">⏳ In Review</option>
+            <option value="APPROVED">✅ Approved</option>
+            <option value="REJECTED">❌ Rejected</option>
+          </select>
+        </div>
       </div>
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-        <div className="bg-gray-50 px-6 py-4 border-b">
-          <h2 className="text-xl font-semibold text-gray-800">📋 Documents</h2>
+
+      {/* Documents Table - Enhanced Light UI */}
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl overflow-hidden border border-white/20">
+        <div className="px-8 py-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-100">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-gray-800">📄 All Documents</h2>
+            <span className="text-sm text-gray-600 bg-white px-4 py-2 rounded-full shadow-sm">
+              {filteredDocuments.length} document{filteredDocuments.length !== 1 ? 's' : ''}
+            </span>
+          </div>
         </div>
         <table className="w-full">
           <thead className="bg-gray-50">
@@ -180,23 +271,33 @@ const Dashboard = () => {
           </thead>
           <tbody>
             {filteredDocuments.map(doc => (
-              <tr key={doc._id} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
-                <td className="p-4 text-gray-800 font-medium">{doc.title}</td>
-                <td className="p-4">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[doc.status]}`}>
-                    {doc.status}
+              <tr key={doc._id} className="group hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50 transition-all duration-200">
+                <td className="p-5 text-gray-800 font-medium">
+                  <div className="flex items-center">
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg flex items-center justify-center text-white font-bold mr-4 shadow-sm group-hover:shadow-md transition-shadow">
+                      📄
+                    </div>
+                    <span className="text-lg">{doc.title}</span>
+                  </div>
+                </td>
+                <td className="p-5">
+                  <span className={`px-4 py-2 rounded-full text-sm font-semibold shadow-sm ${statusColors[doc.status]}`}>
+                    {doc.status.replace('_', ' ')}
                   </span>
                 </td>
-                <td className="p-4">
+                <td className="p-5">
                   <div className="flex gap-2">
-                    <Link to={`/review/${doc._id}`} className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-md">
-                      Review
+                    <Link 
+                      to={`/review/${doc._id}`} 
+                      className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-5 py-2.5 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                    >
+                      👁️ Review
                     </Link>
                     <button 
                       onClick={() => handleDelete(doc._id, doc.title)}
-                      className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-md"
+                      className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-5 py-2.5 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                     >
-                      Delete
+                      🗑️ Delete
                     </button>
                   </div>
                 </td>
@@ -204,22 +305,6 @@ const Dashboard = () => {
             ))}
           </tbody>
         </table>
-      </div>
-      <div className="mt-8 bg-white p-6 rounded-xl shadow-lg">
-        <div className="flex items-center mb-4">
-          <h2 className="text-xl font-semibold text-gray-800">👥 Pending Reviewers</h2>
-          <span className="ml-2 bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-sm font-medium">
-            {data.numberOfPendingReviewers}
-          </span>
-        </div>
-        <ul className="space-y-2">
-          {data.listOfPendingReviewers.map(name => (
-            <li key={name} className="flex items-center text-gray-700">
-              <span className="w-2 h-2 bg-yellow-400 rounded-full mr-3"></span>
-              {name}
-            </li>
-          ))}
-        </ul>
       </div>
 
       {deleteConfirm && (
@@ -267,6 +352,7 @@ const Dashboard = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

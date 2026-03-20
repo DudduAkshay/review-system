@@ -28,6 +28,10 @@ const CreateDocument = () => {
     setError('');
     setLoading(true);
 
+    console.log('\n=== FORM SUBMISSION ===');
+    console.log('Selected reviewers:', selectedReviewers);
+    console.log('Selected reviewer IDs:', selectedReviewers.map(r => r._id));
+
     if (!title.trim()) {
       setError('Please enter a document title');
       setLoading(false);
@@ -49,7 +53,12 @@ const CreateDocument = () => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('title', title.trim());
-    formData.append('reviewerIds', JSON.stringify(selectedReviewers.map(r => r._id)));
+    
+    const reviewerIdsArray = selectedReviewers.map(r => r._id);
+    console.log('Sending reviewerIds:', reviewerIdsArray);
+    console.log('Stringified reviewerIds:', JSON.stringify(reviewerIdsArray));
+    
+    formData.append('reviewerIds', JSON.stringify(reviewerIdsArray));
 
     console.log('Submitting form with reviewerIds:', selectedReviewers.map(r => r._id));
 
@@ -81,7 +90,8 @@ const CreateDocument = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-100">
+      <div className="relative">
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-gray-800 mb-2">📝 Create New Document</h1>
         <p className="text-gray-600">Upload a document and assign reviewers for review</p>
@@ -144,19 +154,26 @@ const CreateDocument = () => {
           </label>
           <div className="space-y-3 max-h-48 overflow-y-auto">
             {reviewers.map(reviewer => (
-              <label key={reviewer._id} className="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+              <label key={reviewer._id} className={`flex items-center p-3 rounded-lg transition-colors cursor-pointer border-2 ${
+                selectedReviewers.some(r => r._id === reviewer._id) 
+                  ? 'bg-blue-50 border-blue-500' 
+                  : 'bg-gray-50 border-transparent hover:bg-gray-100'
+              }`}>
                 <input 
                   type="checkbox" 
                   checked={selectedReviewers.some(r => r._id === reviewer._id)}
                   onChange={() => handleReviewerChange(reviewer)}
                   className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
-                <div className="flex items-center">
+                <div className="flex items-center flex-1">
                   <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium mr-3">
                     {reviewer.name.charAt(0).toUpperCase()}
                   </div>
                   <span className="text-gray-700 font-medium">{reviewer.name}</span>
                 </div>
+                {selectedReviewers.some(r => r._id === reviewer._id) && (
+                  <span className="text-blue-600 text-sm font-semibold">✓ Selected</span>
+                )}
               </label>
             ))}
           </div>
@@ -178,6 +195,7 @@ const CreateDocument = () => {
           {loading ? '⏳ Creating...' : '🚀 Create Document'}
         </button>
       </form>
+      </div>
     </div>
   );
 };

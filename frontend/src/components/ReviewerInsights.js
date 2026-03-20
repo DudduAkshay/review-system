@@ -33,7 +33,8 @@ const ReviewerInsights = () => {
 
   const fetchReviewerDetails = async (reviewerId) => {
     try {
-      const response = await axios.get(`${API_BASE}/api/reviews/reviewer/${reviewerId}`);
+      // Get all reviews for this reviewer using the correct endpoint
+      const response = await axios.get(`${API_BASE}/api/reviewers/${reviewerId}/documents`);
       setReviewerDetails(response.data);
     } catch (error) {
       console.error('Error fetching reviewer details:', error);
@@ -52,7 +53,8 @@ const ReviewerInsights = () => {
   if (loading) return <div className="text-center py-10">Loading...</div>;
 
   return (
-    <div>
+    <div className="min-h-screen bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-100">
+      <div className="relative">
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-gray-800 mb-2">👥 Reviewer Insights</h1>
         <p className="text-gray-600">Track reviewer performance and workload</p>
@@ -118,44 +120,51 @@ const ReviewerInsights = () => {
                   <p className="text-gray-600">No documents assigned to this reviewer.</p>
                 ) : (
                   <div className="space-y-4">
-                    {reviewerDetails.map(document => (
-                      <div key={document._id} className="border border-gray-200 rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-3">
-                          <h4 className="font-semibold text-gray-800">{document.title}</h4>
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(document.status)}`}>
-                            {document.status}
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="text-gray-600">Document Status:</span>
-                            <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${getStatusColor(document.status)}`}>
-                              {document.status}
+                    {reviewerDetails.map(review => {
+                      // Safety check for null document
+                      if (!review || !review.document) {
+                        return null;
+                      }
+                      
+                      return (
+                        <div key={review._id} className="border border-gray-200 rounded-lg p-4">
+                          <div className="flex justify-between items-start mb-3">
+                            <h4 className="font-semibold text-gray-800">{review.document.title}</h4>
+                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(review.document.status)}`}>
+                              {review.document.status}
                             </span>
                           </div>
-                          <div>
-                            <span className="text-gray-600">Your Decision:</span>
-                            <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${getStatusColor(document.reviewStatus)}`}>
-                              {document.reviewStatus === 'PENDING' ? 'Not yet decided' : document.reviewStatus}
-                            </span>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="text-gray-600">Document Status:</span>
+                              <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${getStatusColor(review.document.status)}`}>
+                                {review.document.status}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Your Decision:</span>
+                              <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${getStatusColor(review.status)}`}>
+                                {review.status === 'PENDING' ? 'Not yet decided' : review.status}
+                              </span>
+                            </div>
                           </div>
+                          {review.status !== 'PENDING' && (
+                            <div className="mt-3 pt-3 border-t border-gray-100">
+                              <p className="text-sm text-gray-600">
+                                <strong>Activity:</strong> You {review.status.toLowerCase()} "{review.document.title}"
+                              </p>
+                            </div>
+                          )}
                         </div>
-                        {document.reviewStatus !== 'PENDING' && (
-                          <div className="mt-3 pt-3 border-t border-gray-100">
-                            <p className="text-sm text-gray-600">
-                              <strong>Activity:</strong> You {document.reviewStatus.toLowerCase()} "{document.title}"
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
 
               <div className="bg-white rounded-xl shadow-lg p-6">
                 <h3 className="text-xl font-semibold text-gray-800 mb-4">📊 Summary Statistics</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="text-center p-4 bg-blue-50 rounded-lg">
                     <div className="text-2xl font-bold text-blue-600">{reviewerDetails.length}</div>
                     <div className="text-sm text-blue-800">Total Assigned</div>
@@ -168,9 +177,15 @@ const ReviewerInsights = () => {
                   </div>
                   <div className="text-center p-4 bg-green-50 rounded-lg">
                     <div className="text-2xl font-bold text-green-600">
-                      {reviewerDetails.filter(r => r.status !== 'PENDING').length}
+                      {reviewerDetails.filter(r => r.status === 'APPROVED').length}
                     </div>
-                    <div className="text-sm text-green-800">Completed</div>
+                    <div className="text-sm text-green-800">Approved</div>
+                  </div>
+                  <div className="text-center p-4 bg-red-50 rounded-lg">
+                    <div className="text-2xl font-bold text-red-600">
+                      {reviewerDetails.filter(r => r.status === 'REJECTED').length}
+                    </div>
+                    <div className="text-sm text-red-800">Rejected</div>
                   </div>
                 </div>
               </div>
@@ -190,6 +205,8 @@ const ReviewerInsights = () => {
                 <th className="p-4 text-left font-semibold text-gray-700">Reviewer</th>
                 <th className="p-4 text-left font-semibold text-gray-700">Assigned Documents</th>
                 <th className="p-4 text-left font-semibold text-gray-700">Pending Reviews</th>
+                <th className="p-4 text-left font-semibold text-gray-700">Approved</th>
+                <th className="p-4 text-left font-semibold text-gray-700">Rejected</th>
                 <th className="p-4 text-left font-semibold text-gray-700">Status</th>
               </tr>
             </thead>
@@ -213,6 +230,16 @@ const ReviewerInsights = () => {
                     </span>
                   </td>
                   <td className="p-4">
+                    <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                      {reviewer.approvedReviews || 0}
+                    </span>
+                  </td>
+                  <td className="p-4">
+                    <span className="px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                      {reviewer.rejectedReviews || 0}
+                    </span>
+                  </td>
+                  <td className="p-4">
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                       reviewer.pendingReviews === 0 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
                     }`}>
@@ -225,6 +252,7 @@ const ReviewerInsights = () => {
           </table>
         </div>
       )}
+      </div>
     </div>
   );
 };

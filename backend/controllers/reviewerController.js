@@ -7,13 +7,34 @@ class ReviewerController {
       const reviewers = await Reviewer.find();
       const reviewersWithStats = await Promise.all(
         reviewers.map(async (reviewer) => {
+          // Count assigned documents dynamically
           const totalAssigned = await Review.countDocuments({ reviewer: reviewer._id });
-          const pendingReviews = await Review.countDocuments({ reviewer: reviewer._id, status: 'PENDING' });
+          
+          // Count pending reviews dynamically
+          const pendingReviews = await Review.countDocuments({ 
+            reviewer: reviewer._id, 
+            status: 'PENDING' 
+          });
+          
+          // Count approved reviews dynamically
+          const approvedReviews = await Review.countDocuments({ 
+            reviewer: reviewer._id, 
+            status: 'APPROVED' 
+          });
+          
+          // Count rejected reviews dynamically
+          const rejectedReviews = await Review.countDocuments({ 
+            reviewer: reviewer._id, 
+            status: 'REJECTED' 
+          });
+          
           return {
             _id: reviewer._id,
             name: reviewer.name,
             totalAssigned,
             pendingReviews,
+            approvedReviews,
+            rejectedReviews,
           };
         })
       );
